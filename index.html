@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>One-Way ANOVA: An Interactive Simulation | ANOVA Lab</title>
+<meta name="description" content="MBA classroom simulation for learning One-Way ANOVA — from Fisher to practice"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Source+Sans+3:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+:root{--ink:#1a1a2e;--parchment:#f5f0e8;--accent:#c4553a;--gold:#b8860b;--sage:#5c7a5e;--steel:#4a5568}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Source Sans 3',sans-serif;background:var(--parchment);color:var(--ink);-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.anim-fiu{animation:fadeInUp .7s ease-out forwards}
+.s1{animation-delay:.1s}.s2{animation-delay:.2s}.s3{animation-delay:.3s}.s4{animation-delay:.4s}
+
+.font-d{font-family:'Playfair Display',serif}
+.font-m{font-family:'JetBrains Mono',monospace}
+
+/* Nav */
+.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:50;background:rgba(26,26,46,.95);backdrop-filter:blur(12px);color:var(--parchment)}
+.nav-inner{max-width:80rem;margin:0 auto;padding:0 1.5rem;display:flex;align-items:center;justify-content:space-between;height:3.5rem}
+.nav-links{display:flex;gap:1.5rem}
+.nav-link{font-size:.85rem;font-weight:500;color:rgba(245,240,232,.6);background:none;border:none;cursor:pointer;position:relative;transition:color .3s;padding:0}
+.nav-link:hover,.nav-link.act{color:var(--gold)}
+.nav-link::after{content:'';position:absolute;bottom:-2px;left:0;width:0;height:2px;background:var(--accent);transition:width .3s}
+.nav-link:hover::after,.nav-link.act::after{width:100%}
+.hamburger{display:none;background:none;border:none;cursor:pointer;padding:.5rem}
+.hamburger span{display:block;width:1.5rem;height:2px;background:var(--parchment);margin:5px 0;transition:all .3s}
+.mob-menu{display:none;background:rgba(26,26,46,.98);border-top:1px solid rgba(245,240,232,.1);padding-bottom:1rem}
+.mob-menu button{display:block;width:100%;text-align:left;padding:.75rem 1.5rem;font-size:.85rem;font-weight:500;color:rgba(245,240,232,.6);background:none;border:none;cursor:pointer}
+.mob-menu button.act{color:var(--gold);background:rgba(245,240,232,.05)}
+
+@media(max-width:768px){
+  .nav-links{display:none}
+  .hamburger{display:block}
+  .mob-menu.open{display:block}
+}
+
+/* Hero */
+.hero{min-height:100vh;display:flex;align-items:center;padding-top:3.5rem;background-image:radial-gradient(circle at 20% 50%,rgba(196,85,58,.08) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(184,134,11,.08) 0%,transparent 50%),radial-gradient(circle at 60% 80%,rgba(92,122,94,.06) 0%,transparent 50%)}
+.hero-inner{max-width:80rem;margin:0 auto;padding:4rem 1.5rem;width:100%}
+.badge{display:inline-block;background:rgba(196,85,58,.1);color:var(--accent);padding:.25rem .75rem;border-radius:99px;font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.5rem}
+.hero h1{font-size:clamp(2.5rem,6vw,4.5rem);font-weight:700;line-height:1.1}
+.hero p{margin-top:1.5rem;font-size:clamp(1rem,2vw,1.25rem);color:var(--steel);max-width:40rem;line-height:1.7}
+.btn-row{margin-top:2.5rem;display:flex;flex-wrap:wrap;gap:1rem}
+.btn{padding:.75rem 1.5rem;border-radius:.5rem;font-size:.875rem;font-weight:600;border:none;cursor:pointer;transition:all .3s}
+.btn:hover{transform:translateY(-2px);box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.btn-dark{background:var(--ink);color:var(--parchment)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-gold{background:var(--gold);color:var(--ink)}
+.btn-gold-outline{background:transparent;border:1.5px solid rgba(184,134,11,.4);color:var(--gold)}
+.btn-sm{padding:.5rem 1.25rem;font-size:.8rem}
+.stats{margin-top:3rem;display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;max-width:20rem}
+.stat-n{font-size:2rem;font-weight:700;color:var(--accent)}
+.stat-l{font-size:.7rem;color:var(--steel);margin-top:.15rem}
+
+/* Section base */
+.section{padding:4rem 0}
+.section-inner{max-width:64rem;margin:0 auto;padding:0 1.5rem}
+.section-label{font-size:.7rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase}
+.section-title{font-size:clamp(1.75rem,4vw,3rem);font-weight:700;margin-top:.75rem}
+.section-desc{color:var(--steel);margin-top:1rem;max-width:36rem;margin-left:auto;margin-right:auto;font-size:.9rem;line-height:1.6}
+
+/* Dark section */
+.dark-sec{background:var(--ink);color:var(--parchment)}
+.dark-sec .section-desc{color:rgba(245,240,232,.5)}
+
+/* White section */
+.white-sec{background:#fff}
+
+/* Timeline */
+.tl-item{display:flex;gap:2rem;margin-bottom:2rem}
+.tl-year{width:80px;flex-shrink:0;text-align:right;font-size:1.25rem;font-weight:700;color:var(--gold);padding-top:.25rem}
+.tl-dot{width:14px;height:14px;border-radius:50%;background:var(--accent);border:3px solid var(--parchment);box-shadow:0 0 0 2px var(--accent);flex-shrink:0;margin-top:.35rem}
+.dark-sec .tl-dot{border-color:var(--ink)}
+.tl-card{flex:1;background:rgba(245,240,232,.05);border-radius:.75rem;padding:1.25rem 1.5rem;border:1px solid rgba(245,240,232,.1);transition:all .3s}
+.tl-card:hover{border-color:rgba(184,134,11,.3);background:rgba(245,240,232,.08)}
+.tl-card h3{font-weight:700;color:var(--gold);margin-bottom:.5rem}
+.tl-card p{color:rgba(245,240,232,.65);font-size:.85rem;line-height:1.6}
+@media(max-width:640px){.tl-item{flex-direction:column;gap:.5rem}.tl-year{text-align:left;width:auto}.tl-dot{display:none}}
+
+/* Cards grid */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem}
+.card{background:#fff;border-radius:1rem;padding:1.5rem 2rem;border:1px solid #e2ddd3;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.card-icon{width:2.5rem;height:2.5rem;border-radius:.5rem;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-weight:700;font-size:1.1rem}
+.card h3{font-weight:700;font-size:1.1rem;margin-bottom:.75rem}
+.card p,.card li{color:var(--steel);font-size:.85rem;line-height:1.6}
+.card li{margin-bottom:.35rem}
+
+/* Formula box */
+.formula{background:linear-gradient(135deg,#faf8f3,#f0ebe0);border-left:4px solid var(--gold);padding:1rem 1.25rem;border-radius:0 .5rem .5rem 0;overflow-x:auto;font-size:.85rem;line-height:1.7}
+
+/* Step cards */
+.step{position:relative;padding-left:2.5rem;margin-bottom:1.5rem}
+.step::before{content:'';position:absolute;left:.75rem;top:2.5rem;bottom:0;width:2px;background:linear-gradient(to bottom,var(--gold),transparent)}
+.step-num{position:absolute;left:0;top:0;width:1.75rem;height:1.75rem;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;z-index:1}
+.step h3{font-weight:700;font-size:1.05rem;cursor:pointer;transition:color .2s}
+.step h3:hover{color:var(--accent)}
+.step-content{padding-top:.75rem;padding-bottom:1rem}
+
+/* Tables */
+.anova-tbl{width:100%;border-collapse:collapse;font-size:.85rem}
+.anova-tbl th{background:var(--ink);color:var(--parchment);font-weight:600;padding:.6rem .75rem;text-align:center}
+.anova-tbl td{padding:.6rem .75rem;text-align:center;border-bottom:1px solid #d4cfc4}
+.anova-tbl tr:nth-child(even){background:rgba(184,134,11,.06)}
+.dark-sec .anova-tbl th{background:rgba(196,85,58,.2)}
+.dark-sec .anova-tbl td{border-color:rgba(245,240,232,.1);color:rgba(245,240,232,.8)}
+
+/* Decision box */
+.decision{padding:1rem 1.25rem;border-radius:.5rem;border:2px solid var(--accent);background:rgba(196,85,58,.05)}
+.decision.pass{border-color:var(--sage);background:rgba(92,122,94,.05)}
+.decision h4{font-size:1.1rem;font-weight:700;margin-bottom:.35rem}
+.decision p{font-size:.85rem;color:var(--steel);line-height:1.6}
+
+/* Nav buttons */
+.step-nav{display:flex;justify-content:center;gap:.75rem;margin-top:2rem;align-items:center}
+.step-nav .counter{font-size:.85rem;color:var(--steel);padding:0 .5rem}
+
+/* Input */
+.input{width:100%;padding:.625rem .75rem;border:1px solid #ccc;border-radius:.5rem;font-size:.85rem;outline:none;transition:border .2s,box-shadow .2s}
+.input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(196,85,58,.1)}
+.input-row{display:flex;gap:.75rem;margin-bottom:.75rem;flex-wrap:wrap}
+.input-row .input:first-child{width:140px;flex-shrink:0;font-weight:600}
+.input-row .input:last-child{flex:1;min-width:200px}
+.remove-btn{padding:.5rem .75rem;color:var(--accent);background:none;border:none;cursor:pointer;border-radius:.5rem;font-size:.85rem}
+.remove-btn:hover{background:rgba(196,85,58,.1)}
+
+/* Group means */
+.means-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:.75rem;margin-top:1rem}
+.mean-card{background:var(--parchment);border-radius:.5rem;padding:.75rem;text-align:center}
+.mean-card .label{font-size:.7rem;color:var(--steel);margin-bottom:.25rem}
+.mean-card .val{font-weight:700}
+.mean-card .n{font-size:.7rem;color:var(--steel);margin-top:.15rem}
+
+/* Exercise tabs */
+.ex-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:2rem;justify-content:center}
+.ex-tab{padding:.5rem 1rem;border-radius:.5rem;font-size:.8rem;font-weight:500;border:none;cursor:pointer;transition:all .3s;background:rgba(245,240,232,.1);color:rgba(245,240,232,.5)}
+.ex-tab.act{background:var(--accent);color:#fff}
+.ex-card{background:rgba(245,240,232,.05);border:1px solid rgba(245,240,232,.1);border-radius:.75rem;padding:1.5rem 2rem;overflow:hidden}
+.ex-card h3{color:var(--gold);font-weight:700;font-size:1.15rem;margin-bottom:.75rem}
+.ex-card .scenario{color:rgba(245,240,232,.65);font-size:.85rem;line-height:1.6;margin-bottom:1rem}
+.hint-box{background:rgba(245,240,232,.05);border-radius:.5rem;padding:.75rem 1rem;font-size:.75rem;color:rgba(184,134,11,.7);margin-bottom:1rem}
+.ex-btns{display:flex;flex-wrap:wrap;gap:.75rem}
+.ex-btn{padding:.5rem 1.25rem;border-radius:.5rem;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .3s;border:1px solid rgba(245,240,232,.2);color:rgba(245,240,232,.65);background:transparent}
+.ex-btn:hover{background:rgba(245,240,232,.1)}
+.ex-btn.primary{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+
+/* Sandbox */
+.sandbox{background:#1e1e2e;border-radius:1rem;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.sb-toolbar{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:#181825;border-bottom:1px solid rgba(255,255,255,.05)}
+.sb-toolbar .tabs{display:flex;gap:.5rem}
+.sb-tab{padding:.375rem 1rem;border-radius:.375rem;font-size:.75rem;font-weight:600;border:none;cursor:pointer;transition:all .3s;color:rgba(255,255,255,.4);background:transparent}
+.sb-tab.act{background:var(--accent);color:#fff}
+.run-btn{display:flex;align-items:center;gap:.5rem;padding:.375rem 1rem;background:var(--sage);color:#fff;border:none;border-radius:.375rem;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .3s}
+.run-btn:hover{opacity:.9}
+.run-btn:disabled{opacity:.5}
+.code-area{width:100%;min-height:300px;background:#1e1e2e;color:#cdd6f4;border:none;outline:none;padding:1rem;font-family:'JetBrains Mono',monospace;font-size:13px;line-height:1.6;resize:vertical;tab-size:2}
+.output-header{padding:.5rem 1rem;background:#181825;color:rgba(255,255,255,.35);font-size:.7rem;font-weight:600;display:flex;align-items:center;gap:.5rem;border-top:1px solid rgba(255,255,255,.05)}
+.output-dot{width:8px;height:8px;border-radius:50%;background:var(--sage)}
+.output-area{background:#1e1e2e;color:#cdd6f4;padding:1rem;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.5;max-height:300px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+
+/* Footer */
+.footer{background:var(--ink);color:rgba(245,240,232,.4);padding:2.5rem 0;text-align:center}
+.footer .brand{color:var(--gold);font-size:1.1rem;font-weight:700;margin-bottom:.5rem}
+.footer .brand span{color:var(--accent)}
+.footer p{font-size:.75rem}
+.footer .sub{color:rgba(245,240,232,.2);margin-top:.5rem}
+
+/* Overflow */
+.overflow-x{overflow-x:auto}
+
+/* Spinner */
+.spinner{width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:inline-block}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect, useRef, useCallback} = React;
+
+// ── Stats helpers ──
+function mean(a){return a.reduce((s,v)=>s+v,0)/a.length}
+function ss(a){const m=mean(a);return a.reduce((s,v)=>s+(v-m)**2,0)}
+function betacf(a,b,x){const mx=200,eps=3e-7,qab=a+b,qap=a+1,qam=a-1;let c=1,d=1-qab*x/qap;if(Math.abs(d)<1e-30)d=1e-30;d=1/d;let h=d;for(let m=1;m<=mx;m++){const m2=2*m;let aa=m*(b-m)*x/((qam+m2)*(a+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;h*=d*c;aa=-(a+m)*(qab+m)*x/((a+m2)*(qap+m2));d=1+aa*d;if(Math.abs(d)<1e-30)d=1e-30;c=1+aa/c;if(Math.abs(c)<1e-30)c=1e-30;d=1/d;const del=d*c;h*=del;if(Math.abs(del-1)<eps)break}return h}
+function lgamma(x){const c=[76.18009172947146,-86.50532032941677,24.01409824083091,-1.231739572450155,.1208650973866179e-2,-.5395239384953e-5];let y=x,t=x+5.5;t-=(x+.5)*Math.log(t);let s=1.000000000190015;for(let j=0;j<6;j++)s+=c[j]/++y;return-t+Math.log(2.5066282746310005*s/x)}
+function betainc(a,b,x){if(x===0||x===1)return x;const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));if(x<(a+1)/(a+b+2))return bt*betacf(a,b,x)/a;return 1-bt*betacf(b,a,1-x)/b}
+function fCDF(x,d1,d2){if(x<=0)return 0;return betainc(d1/2,d2/2,(d1*x)/(d1*x+d2))}
+function pVal(f,df1,df2){return 1-fCDF(f,df1,df2)}
+function fCrit(a,df1,df2){let lo=0,hi=100;for(let i=0;i<100;i++){const m=(lo+hi)/2;if(pVal(m,df1,df2)>a)lo=m;else hi=m}return(lo+hi)/2}
+function doAnova(groups){const k=groups.length,all=groups.flat(),N=all.length,gm=mean(all),gMeans=groups.map(g=>mean(g)),SSB=groups.reduce((a,g,i)=>a+g.length*(gMeans[i]-gm)**2,0),SSW=groups.reduce((a,g)=>a+ss(g),0),dfB=k-1,dfW=N-k,MSB=SSB/dfB,MSW=SSW/dfW,F=MSB/MSW,p=pVal(F,dfB,dfW),fc=fCrit(.05,dfB,dfW);return{k,N,gm,gMeans,SSB,SSW,SST:SSB+SSW,dfB,dfW,MSB,MSW,F,p,fc}}
+
+// ── Data ──
+const exGroups=[{name:"Strategy A: Social Media",data:[78,82,85,79,81]},{name:"Strategy B: Email Marketing",data:[71,68,74,70,72]},{name:"Strategy C: In-Store Promotions",data:[88,92,85,90,87]}];
+const exResult=doAnova(exGroups.map(g=>g.data));
+
+const exercises=[
+{id:1,title:"Employee Productivity Across Shift Timings",scenario:"An operations manager wants to test whether shift timing affects daily output. Three shifts (Morning, Afternoon, Night) were compared across 6 workers each.",groups:[{name:"Morning",data:[45,48,42,50,47,44]},{name:"Afternoon",data:[38,40,35,42,39,37]},{name:"Night",data:[30,33,28,35,31,29]}],hint:"H₀: μ₁ = μ₂ = μ₃ (mean productivity same across shifts)",py:`import numpy as np\nfrom scipy import stats\n\nmorning   = [45, 48, 42, 50, 47, 44]\nafternoon = [38, 40, 35, 42, 39, 37]\nnight     = [30, 33, 28, 35, 31, 29]\n\nf_stat, p_value = stats.f_oneway(morning, afternoon, night)\nprint(f"F-statistic: {f_stat:.4f}")\nprint(f"P-value: {p_value:.6f}")\nif p_value < 0.05:\n    print("Reject H0: Significant difference exists")\nelse:\n    print("Fail to reject H0")`,r:`morning   <- c(45, 48, 42, 50, 47, 44)\nafternoon <- c(38, 40, 35, 42, 39, 37)\nnight     <- c(30, 33, 28, 35, 31, 29)\n\ndf <- data.frame(\n  score = c(morning, afternoon, night),\n  shift = factor(rep(c("Morning","Afternoon","Night"), each=6))\n)\nresult <- aov(score ~ shift, data = df)\nsummary(result)\nTukeyHSD(result)`},
+{id:2,title:"Sales Revenue by Store Layout",scenario:"A fashion retail brand tested four store layouts (Grid, Free-flow, Boutique, Racetrack) across 5 locations each. Weekly revenue (₹ lakhs) was recorded.",groups:[{name:"Grid",data:[12.5,13.1,11.8,12.9,13.5]},{name:"Free-flow",data:[15.2,14.8,16.1,15.5,14.9]},{name:"Boutique",data:[18.3,17.9,19.1,18.5,17.6]},{name:"Racetrack",data:[14.1,13.8,14.5,14.3,13.9]}],hint:"H₀: μ₁ = μ₂ = μ₃ = μ₄ (mean revenue same across layouts)",py:`import numpy as np\nfrom scipy import stats\n\ngrid      = [12.5, 13.1, 11.8, 12.9, 13.5]\nfreeflow  = [15.2, 14.8, 16.1, 15.5, 14.9]\nboutique  = [18.3, 17.9, 19.1, 18.5, 17.6]\nracetrack = [14.1, 13.8, 14.5, 14.3, 13.9]\n\nf_stat, p_value = stats.f_oneway(grid, freeflow, boutique, racetrack)\nprint(f"F-statistic: {f_stat:.4f}")\nprint(f"P-value: {p_value:.6f}")`,r:`grid      <- c(12.5, 13.1, 11.8, 12.9, 13.5)\nfreeflow  <- c(15.2, 14.8, 16.1, 15.5, 14.9)\nboutique  <- c(18.3, 17.9, 19.1, 18.5, 17.6)\nracetrack <- c(14.1, 13.8, 14.5, 14.3, 13.9)\n\ndf <- data.frame(\n  sales = c(grid, freeflow, boutique, racetrack),\n  layout = factor(rep(c("Grid","Free-flow","Boutique","Racetrack"), each=5))\n)\nresult <- aov(sales ~ layout, data = df)\nsummary(result)\nTukeyHSD(result)`},
+{id:3,title:"Training Method Effectiveness",scenario:"An HR department tested three training methods (Classroom, E-learning, On-the-job) on new hires. Post-training assessment scores (out of 50) were recorded for 7 employees each.",groups:[{name:"Classroom",data:[38,42,35,40,37,41,39]},{name:"E-Learning",data:[32,30,35,28,33,31,29]},{name:"On-the-Job",data:[40,43,38,45,41,42,44]}],hint:"H₀: μ₁ = μ₂ = μ₃ (mean scores same across methods)",py:`import numpy as np\nfrom scipy import stats\n\nclassroom = [38, 42, 35, 40, 37, 41, 39]\nelearning = [32, 30, 35, 28, 33, 31, 29]\nonthejob  = [40, 43, 38, 45, 41, 42, 44]\n\nf_stat, p_value = stats.f_oneway(classroom, elearning, onthejob)\nprint(f"F-statistic: {f_stat:.4f}")\nprint(f"P-value: {p_value:.6f}")`,r:`classroom <- c(38, 42, 35, 40, 37, 41, 39)\nelearning <- c(32, 30, 35, 28, 33, 31, 29)\nonthejob  <- c(40, 43, 38, 45, 41, 42, 44)\n\ndf <- data.frame(\n  score = c(classroom, elearning, onthejob),\n  method = factor(rep(c("Classroom","E-Learning","On-the-Job"), each=7))\n)\nresult <- aov(score ~ method, data = df)\nsummary(result)\nTukeyHSD(result)`},
+{id:4,title:"Customer Wait Time by Service Channel",scenario:"A bank compared average customer wait times (minutes) across four service channels: Branch, Phone, App, and Website. Data from 6 random interactions per channel.",groups:[{name:"Branch",data:[22,25,18,30,27,24]},{name:"Phone",data:[15,12,18,14,16,13]},{name:"App",data:[5,8,3,6,7,4]},{name:"Website",data:[10,12,8,11,9,14]}],hint:"H₀: μ₁ = μ₂ = μ₃ = μ₄ (mean wait time same across channels)",py:`import numpy as np\nfrom scipy import stats\n\nbranch  = [22, 25, 18, 30, 27, 24]\nphone   = [15, 12, 18, 14, 16, 13]\napp     = [5, 8, 3, 6, 7, 4]\nwebsite = [10, 12, 8, 11, 9, 14]\n\nf_stat, p_value = stats.f_oneway(branch, phone, app, website)\nprint(f"F-statistic: {f_stat:.4f}")\nprint(f"P-value: {p_value:.6f}")`,r:`branch  <- c(22, 25, 18, 30, 27, 24)\nphone   <- c(15, 12, 18, 14, 16, 13)\napp     <- c(5, 8, 3, 6, 7, 4)\nwebsite <- c(10, 12, 8, 11, 9, 14)\n\ndf <- data.frame(\n  time = c(branch, phone, app, website),\n  channel = factor(rep(c("Branch","Phone","App","Website"), each=6))\n)\nresult <- aov(time ~ channel, data = df)\nsummary(result)\nTukeyHSD(result)`}
+];
+
+const timeline=[
+{year:"1910s",title:"Seeds of Variance",desc:"Sir Ronald A. Fisher, working at Rothamsted Experimental Station in England, began developing mathematical foundations for analyzing agricultural experiments."},
+{year:"1918",title:"The Correlation Paper",desc:"Fisher published his landmark paper on correlations between relatives, introducing the term 'variance' for the first time — the bedrock of all ANOVA work."},
+{year:"1921",title:"Partitioning Variance",desc:"Fisher introduced the idea of partitioning total variance into components: total variation = between-group + within-group. The conceptual heart of ANOVA."},
+{year:"1924",title:"The F-distribution",desc:"Fisher derived what we now call the F-distribution (named in his honour by Snedecor) — the ratio of two chi-squared distributions used as the ANOVA test statistic."},
+{year:"1925",title:"Statistical Methods for Research Workers",desc:"Fisher's groundbreaking book made ANOVA accessible to researchers and introduced the 5% significance level — a convention that persists in business research today."},
+{year:"1935",title:"The Design of Experiments",desc:"Fisher formalized randomization, replication, and blocking — principles still fundamental to business experiments and A/B tests."},
+{year:"1940–50s",title:"Post-hoc & Extensions",desc:"Tukey developed the HSD test for pairwise comparisons; Scheffé developed his method for all contrasts. These remain standard follow-up tests in MBA coursework."},
+{year:"1960–70s",title:"Computing Revolution",desc:"SPSS (1968) and SAS (1976) made ANOVA computationally accessible, leading to widespread adoption in business research."},
+{year:"1990s–Now",title:"Modern Applications",desc:"R (1995) and Python's SciPy embedded ANOVA in data science. Today it powers A/B testing, quality control, marketing analytics, and HR studies worldwide."}
+];
+
+const sects=[{id:'hero',l:'Home'},{id:'history',l:'History'},{id:'theory',l:'Theory'},{id:'worked',l:'Worked Example'},{id:'interactive',l:'Calculator'},{id:'exercises',l:'Exercises'},{id:'sandbox',l:'Sandbox'}];
+
+// ═══ MAIN APP ═══
+function App(){
+const[actSec,setActSec]=useState('hero');
+const[step,setStep]=useState(0);
+const[showSol,setShowSol]=useState({});
+const[sbLang,setSbLang]=useState('python');
+const[sbCode,setSbCode]=useState('');
+const[sbOut,setSbOut]=useState('');
+const[running,setRunning]=useState(false);
+const[mobNav,setMobNav]=useState(false);
+const[actEx,setActEx]=useState(0);
+const[cGroups,setCGroups]=useState([{name:'Group 1',data:'10, 12, 14, 11, 13'},{name:'Group 2',data:'15, 18, 16, 17, 19'},{name:'Group 3',data:'8, 9, 7, 10, 11'}]);
+const[cResult,setCResult]=useState(null);
+
+const defaultPy=`import numpy as np
+from scipy import stats
+
+# Enter your group data here
+group1 = [78, 82, 85, 79, 81]
+group2 = [71, 68, 74, 70, 72]
+group3 = [88, 92, 85, 90, 87]
+
+f_stat, p_value = stats.f_oneway(group1, group2, group3)
+
+print("=" * 45)
+print("  ONE-WAY ANOVA RESULTS")
+print("=" * 45)
+print(f"  F-statistic : {f_stat:.4f}")
+print(f"  P-value     : {p_value:.6f}")
+print(f"  Alpha       : 0.05")
+print("-" * 45)
+if p_value < 0.05:
+    print("  Decision: REJECT H0")
+else:
+    print("  Decision: FAIL TO REJECT H0")
+
+print("\\nGroup Means:")
+for i, g in enumerate([group1, group2, group3], 1):
+    print(f"  Group {i}: {np.mean(g):.2f}")`;
+
+const defaultR=`# One-Way ANOVA in R
+group1 <- c(78, 82, 85, 79, 81)
+group2 <- c(71, 68, 74, 70, 72)
+group3 <- c(88, 92, 85, 90, 87)
+
+df <- data.frame(
+  score = c(group1, group2, group3),
+  group = factor(rep(c("G1","G2","G3"), each=5))
+)
+
+result <- aov(score ~ group, data = df)
+cat("ONE-WAY ANOVA RESULTS\\n")
+print(summary(result))
+
+cat("\\nTukey HSD Post-hoc Test\\n")
+print(TukeyHSD(result))`;
+
+useEffect(()=>{setSbCode(sbLang==='python'?defaultPy:defaultR)},[sbLang]);
+
+// Scroll spy
+useEffect(()=>{
+const obs=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting)setActSec(e.target.id)})},{threshold:.25});
+sects.forEach(s=>{const el=document.getElementById(s.id);if(el)obs.observe(el)});
+return()=>obs.disconnect()
+},[]);
+
+const scrollTo=id=>{document.getElementById(id)?.scrollIntoView({behavior:'smooth'});setMobNav(false)};
+const fmtP=p=>p<.0001?p.toExponential(3):p.toFixed(6);
+
+// Calculator
+const runCalc=useCallback(()=>{
+try{
+const parsed=cGroups.map(g=>({name:g.name,data:g.data.split(',').map(v=>parseFloat(v.trim())).filter(v=>!isNaN(v))})).filter(g=>g.data.length>0);
+if(parsed.length<2){setCResult({error:'Need at least 2 groups with valid data.'});return}
+const r=doAnova(parsed.map(g=>g.data));
+setCResult({...r,groups:parsed})
+}catch(e){setCResult({error:'Invalid data. Enter comma-separated numbers.'})}
+},[cGroups]);
+
+// Sandbox
+const runSandbox=useCallback(()=>{
+setRunning(true);setSbOut('Running...\n');
+setTimeout(()=>{
+try{
+let groups=[];
+const code=sbCode;
+if(sbLang==='python'){const re=/\[([^\]]+)\]/g;let m;while((m=re.exec(code))!==null){const nums=m[1].split(',').map(v=>parseFloat(v.trim())).filter(v=>!isNaN(v));if(nums.length>=2)groups.push(nums)}}
+else{const re=/c\(([^)]+)\)/g;let m;while((m=re.exec(code))!==null){const nums=m[1].split(',').map(v=>parseFloat(v.trim())).filter(v=>!isNaN(v));if(nums.length>=2)groups.push(nums)}}
+if(groups.length<2){setSbOut('Error: Could not find at least 2 data groups.\n\nDefine data as:\n  Python: group1 = [10, 12, 14]\n  R: group1 <- c(10, 12, 14)');setRunning(false);return}
+const r=doAnova(groups);
+let o='═'.repeat(45)+'\n  ONE-WAY ANOVA RESULTS\n'+'═'.repeat(45)+'\n\n';
+o+=`  Groups: ${r.k}  |  Total N: ${r.N}  |  Grand Mean: ${r.gm.toFixed(4)}\n\n`;
+o+='─'.repeat(50)+'\n';
+o+='  Source      SS          df    MS          F\n';
+o+='─'.repeat(50)+'\n';
+o+=`  Between  ${r.SSB.toFixed(2).padStart(10)}  ${String(r.dfB).padStart(4)}  ${r.MSB.toFixed(2).padStart(10)}  ${r.F.toFixed(4)}\n`;
+o+=`  Within   ${r.SSW.toFixed(2).padStart(10)}  ${String(r.dfW).padStart(4)}  ${r.MSW.toFixed(2).padStart(10)}\n`;
+o+=`  Total    ${r.SST.toFixed(2).padStart(10)}  ${String(r.dfB+r.dfW).padStart(4)}\n`;
+o+='─'.repeat(50)+'\n\n';
+o+=`  F-statistic : ${r.F.toFixed(4)}\n`;
+o+=`  P-value     : ${fmtP(r.p)}\n`;
+o+=`  F-critical  : ${r.fc.toFixed(4)} (alpha=0.05)\n\n`;
+o+=r.p<.05?'  ✓ Decision: REJECT H₀\n  At least one group mean differs significantly.\n':'  ✗ Decision: FAIL TO REJECT H₀\n  No significant difference between group means.\n';
+o+='\n  Group Means:\n';
+groups.forEach((g,i)=>{o+=`    Group ${i+1}: ${mean(g).toFixed(4)} (n=${g.length})\n`});
+if(r.p<.05&&r.k<=6){
+o+='\n'+'─'.repeat(50)+'\n  Pairwise Mean Differences:\n'+'─'.repeat(50)+'\n';
+for(let i=0;i<r.k;i++)for(let j=i+1;j<r.k;j++){const d=Math.abs(r.gMeans[i]-r.gMeans[j]);o+=`    G${i+1} vs G${j+1}: |${r.gMeans[i].toFixed(2)} - ${r.gMeans[j].toFixed(2)}| = ${d.toFixed(4)}\n`}
+}
+setSbOut(o)
+}catch(e){setSbOut('Error: '+e.message)}
+setRunning(false)
+},600)
+},[sbCode,sbLang]);
+
+// Worked example steps
+const gMeans=exGroups.map(g=>mean(g.data));
+const allData=exGroups.flatMap(g=>g.data);
+const gm=mean(allData);
+const N=allData.length;
+
+const steps=[
+{title:"State the Hypotheses",content:<div>
+<div className="formula font-m" style={{fontSize:'.85rem'}}>
+<div style={{color:'var(--steel)',fontSize:'.75rem',marginBottom:'.25rem'}}>Null Hypothesis:</div>
+<div style={{fontSize:'1.1rem'}}>H₀ : μ₁ = μ₂ = μ₃</div>
+<div style={{color:'var(--steel)',fontSize:'.75rem',marginTop:'.5rem',marginBottom:'.25rem'}}>Alternative Hypothesis:</div>
+<div style={{fontSize:'1.1rem'}}>H₁ : At least one μᵢ differs</div>
+</div>
+<p style={{color:'var(--steel)',fontSize:'.85rem',lineHeight:'1.6',marginTop:'.75rem'}}>We test whether mean customer satisfaction is equal across all three marketing strategies at α = 0.05.</p>
+</div>},
+
+{title:"Organize Data & Compute Group Means",content:<div>
+<div className="overflow-x"><table className="anova-tbl"><thead><tr>{exGroups.map((g,i)=><th key={i}>{g.name}</th>)}</tr></thead><tbody>
+{[0,1,2,3,4].map(r=><tr key={r}>{exGroups.map((g,i)=><td key={i} className="font-m">{g.data[r]}</td>)}</tr>)}
+<tr style={{background:'rgba(196,85,58,.08)',fontWeight:700}}>{gMeans.map((m,i)=><td key={i} className="font-m">x̄ = {m.toFixed(1)}</td>)}</tr>
+</tbody></table></div>
+<div className="formula font-m" style={{marginTop:'1rem',fontSize:'.85rem'}}>Grand Mean (x̄̄) = ({allData.join(' + ')}) / {N} = <strong>{gm.toFixed(2)}</strong></div>
+</div>},
+
+{title:"Calculate Sum of Squares Between (SSB)",content:<div className="formula font-m" style={{fontSize:'.8rem'}}>
+<div style={{marginBottom:'.5rem'}}>SSB = Σ nᵢ (x̄ᵢ - x̄̄)²</div>
+{exGroups.map((g,i)=><div key={i} style={{marginLeft:'.5rem'}}>= {g.data.length} × ({gMeans[i].toFixed(1)} - {gm.toFixed(2)})² = {(g.data.length*(gMeans[i]-gm)**2).toFixed(2)}</div>)}
+<div style={{marginTop:'.5rem',fontWeight:700,color:'var(--accent)'}}>SSB = {exResult.SSB.toFixed(2)}</div>
+</div>},
+
+{title:"Calculate Sum of Squares Within (SSW)",content:<div>
+<div className="formula font-m" style={{fontSize:'.8rem'}}>
+<div style={{marginBottom:'.5rem'}}>SSW = Σ Σ (xᵢⱼ - x̄ᵢ)²</div>
+{exGroups.map((g,i)=><div key={i} style={{marginLeft:'.5rem',marginBottom:'.25rem'}}>{g.name}: Σ(xⱼ - {gMeans[i].toFixed(1)})² = {ss(g.data).toFixed(2)}</div>)}
+<div style={{marginTop:'.5rem',fontWeight:700,color:'var(--accent)'}}>SSW = {exResult.SSW.toFixed(2)}</div>
+</div>
+<div className="formula font-m" style={{marginTop:'.75rem',fontSize:'.85rem'}}>SST = SSB + SSW = {exResult.SSB.toFixed(2)} + {exResult.SSW.toFixed(2)} = <strong>{exResult.SST.toFixed(2)}</strong></div>
+</div>},
+
+{title:"Degrees of Freedom & Mean Squares",content:<div className="formula font-m" style={{fontSize:'.85rem'}}>
+<div>df<sub>Between</sub> = k - 1 = 3 - 1 = <strong>{exResult.dfB}</strong></div>
+<div>df<sub>Within</sub> = N - k = {N} - 3 = <strong>{exResult.dfW}</strong></div>
+<div style={{borderTop:'1px solid rgba(184,134,11,.3)',marginTop:'.75rem',paddingTop:'.75rem'}}>MSB = SSB / df<sub>B</sub> = {exResult.SSB.toFixed(2)} / {exResult.dfB} = <strong>{exResult.MSB.toFixed(2)}</strong></div>
+<div>MSW = SSW / df<sub>W</sub> = {exResult.SSW.toFixed(2)} / {exResult.dfW} = <strong>{exResult.MSW.toFixed(2)}</strong></div>
+</div>},
+
+{title:"F-statistic & Decision",content:<div>
+<div className="formula font-m" style={{fontSize:'1rem',marginBottom:'1rem'}}>F = MSB / MSW = {exResult.MSB.toFixed(2)} / {exResult.MSW.toFixed(2)} = <strong style={{color:'var(--accent)',fontSize:'1.2rem'}}>{exResult.F.toFixed(4)}</strong></div>
+<div className="overflow-x"><table className="anova-tbl"><thead><tr><th>Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p-value</th></tr></thead><tbody>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Between</td><td className="font-m">{exResult.SSB.toFixed(2)}</td><td className="font-m">{exResult.dfB}</td><td className="font-m">{exResult.MSB.toFixed(2)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{exResult.F.toFixed(4)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{fmtP(exResult.p)}</td></tr>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Within</td><td className="font-m">{exResult.SSW.toFixed(2)}</td><td className="font-m">{exResult.dfW}</td><td className="font-m">{exResult.MSW.toFixed(2)}</td><td></td><td></td></tr>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Total</td><td className="font-m">{exResult.SST.toFixed(2)}</td><td className="font-m">{exResult.dfB+exResult.dfW}</td><td></td><td></td><td></td></tr>
+</tbody></table></div>
+<div className="decision" style={{marginTop:'1rem'}}>
+<h4 className="font-d">✓ Reject H₀</h4>
+<p>F({exResult.dfB}, {exResult.dfW}) = {exResult.F.toFixed(4)}, p = {fmtP(exResult.p)}<br/>F<sub>critical</sub> (α=0.05) ≈ {exResult.fc.toFixed(4)}<br/>Since F = {exResult.F.toFixed(2)} {'>'} F<sub>critical</sub> = {exResult.fc.toFixed(2)} and p {'<'} 0.05, <strong>we reject H₀</strong>. There is a statistically significant difference in customer satisfaction across the three marketing strategies.</p>
+</div></div>}
+];
+
+return(
+<div>
+{/* NAV */}
+<nav className="nav-wrap">
+<div className="nav-inner">
+<button onClick={()=>scrollTo('hero')} style={{background:'none',border:'none',cursor:'pointer'}}><span className="font-d" style={{fontSize:'1.1rem',fontWeight:700,color:'var(--gold)'}}>ANOVA<span style={{color:'var(--accent)'}}>Lab</span></span></button>
+<div className="nav-links">{sects.map(s=><button key={s.id} onClick={()=>scrollTo(s.id)} className={`nav-link ${actSec===s.id?'act':''}`}>{s.l}</button>)}</div>
+<button className="hamburger" onClick={()=>setMobNav(!mobNav)}>
+<span style={mobNav?{transform:'rotate(45deg) translate(5px,5px)'}:{}}/>
+<span style={mobNav?{opacity:0}:{}}/>
+<span style={mobNav?{transform:'rotate(-45deg) translate(5px,-5px)'}:{}}/>
+</button>
+</div>
+{<div className={`mob-menu ${mobNav?'open':''}`}>{sects.map(s=><button key={s.id} onClick={()=>scrollTo(s.id)} className={actSec===s.id?'act':''}>{s.l}</button>)}</div>}
+</nav>
+
+{/* HERO */}
+<section id="hero" className="hero">
+<div className="hero-inner">
+<div style={{maxWidth:'48rem'}}>
+<div className="anim-fiu" style={{opacity:0}}><span className="badge">MBA Statistics Simulation</span></div>
+<h1 className="font-d anim-fiu s1" style={{opacity:0}}>One-Way<br/><span style={{color:'var(--accent)'}}>ANOVA</span></h1>
+<p className="anim-fiu s2" style={{opacity:0}}>From Fisher's fields to your boardroom. An interactive journey through the Analysis of Variance, with business applications, step-by-step solutions, and a live coding sandbox.</p>
+<div className="btn-row anim-fiu s3" style={{opacity:0}}>
+<button className="btn btn-dark" onClick={()=>scrollTo('history')}>Begin the Journey →</button>
+<button className="btn btn-accent" onClick={()=>scrollTo('interactive')}>Jump to Calculator</button>
+</div>
+<div className="stats anim-fiu s4" style={{opacity:0}}>
+{[{n:'6',l:'Worked Steps'},{n:'4',l:'Exercises'},{n:'2',l:'Languages'}].map((x,i)=><div key={i} style={{textAlign:'center'}}><div className="font-d stat-n">{x.n}</div><div className="stat-l">{x.l}</div></div>)}
+</div>
+</div>
+</div>
+</section>
+
+{/* HISTORY */}
+<section id="history" className="section dark-sec" style={{padding:'5rem 0'}}>
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--gold)'}}>The Origins</div>
+<h2 className="font-d section-title">A History of <span style={{color:'var(--accent)'}}>ANOVA</span></h2>
+<p className="section-desc">How a statistician working on crop yields in rural England created a method that now drives business decisions worldwide.</p>
+</div>
+<div className="section-inner">
+{timeline.map((e,i)=><div key={i} className="tl-item"><div className="tl-year font-d">{e.year}</div><div className="tl-dot"/><div className="tl-card"><h3 className="font-d">{e.title}</h3><p>{e.desc}</p></div></div>)}
+</div>
+</section>
+
+{/* THEORY */}
+<section id="theory" className="section">
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--accent)'}}>The Fundamentals</div>
+<h2 className="font-d section-title">Understanding One-Way ANOVA</h2>
+</div>
+<div className="section-inner">
+<div className="cards">
+<div className="card">
+<div className="card-icon" style={{background:'rgba(196,85,58,.1)',color:'var(--accent)'}}>?</div>
+<h3 className="font-d">What is One-Way ANOVA?</h3>
+<p>One-Way ANOVA tests whether there are statistically significant differences between the means of <strong>three or more independent groups</strong>. It extends the two-sample t-test to multiple groups using a single factor.</p>
+<div className="formula font-m" style={{marginTop:'.75rem',fontSize:'.8rem'}}>F = MSB / MSW = (Between-group variance) / (Within-group variance)</div>
+</div>
+<div className="card">
+<div className="card-icon" style={{background:'rgba(184,134,11,.1)',color:'var(--gold)'}}>⏱</div>
+<h3 className="font-d">When to Use It?</h3>
+<ul style={{listStyle:'none',padding:0}}>{['Comparing sales across multiple regions','Testing effectiveness of training programs','Evaluating satisfaction across service channels','Comparing quality from different suppliers','A/B/C testing in marketing campaigns'].map((x,i)=><li key={i}>• {x}</li>)}</ul>
+</div>
+<div className="card">
+<div className="card-icon" style={{background:'rgba(92,122,94,.1)',color:'var(--sage)'}}>✓</div>
+<h3 className="font-d">Key Assumptions</h3>
+{[{t:'Independence',d:'Observations in each group are independent of each other.'},{t:'Normality',d:"Each group's data is approximately normally distributed."},{t:'Homogeneity of Variance',d:'All groups have roughly equal variances (Levene\'s test).'}].map((a,i)=><div key={i} style={{marginBottom:'.5rem'}}><div style={{fontWeight:600,fontSize:'.85rem'}}>{a.t}</div><div style={{color:'var(--steel)',fontSize:'.8rem'}}>{a.d}</div></div>)}
+</div>
+<div className="card">
+<div className="card-icon" style={{background:'rgba(26,26,46,.08)',color:'var(--ink)'}}>Σ</div>
+<h3 className="font-d">The Core Logic</h3>
+<p style={{marginBottom:'.5rem'}}>ANOVA decomposes total variability into two parts:</p>
+<div className="formula font-m" style={{fontSize:'.8rem'}}><div><strong>SST</strong> = SSB + SSW</div><div style={{color:'var(--steel)'}}>(Total) = (Between) + (Within)</div><div style={{marginTop:'.5rem'}}><strong>F</strong> = (SSB / df₁) / (SSW / df₂) = MSB / MSW</div><div style={{color:'var(--steel)'}}>df₁ = k − 1, df₂ = N − k</div><div style={{marginTop:'.35rem',color:'var(--steel)'}}>Large F → group means differ → reject H₀</div></div>
+</div>
+</div>
+</div>
+</section>
+
+{/* WORKED EXAMPLE */}
+<section id="worked" className="section white-sec">
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--accent)'}}>Step by Step</div>
+<h2 className="font-d section-title">Worked Example</h2>
+<p className="section-desc">A retail chain tested three marketing strategies across 15 stores (5 per strategy) and measured customer satisfaction scores (out of 100).</p>
+</div>
+<div className="section-inner">
+{steps.map((s,idx)=><div key={idx} className="step" style={{opacity:step>=idx?1:.35,transition:'opacity .4s'}}>
+<div className="step-num font-d">{idx+1}</div>
+<h3 className="font-d" onClick={()=>setStep(idx)}>{s.title}</h3>
+{step>=idx&&<div className="step-content anim-fiu" style={{opacity:0}}>{s.content}</div>}
+</div>)}
+<div className="step-nav">
+<button className="btn btn-sm" style={{border:'2px solid rgba(26,26,46,.15)',background:'transparent',opacity:step===0?.3:1}} disabled={step===0} onClick={()=>setStep(Math.max(0,step-1))}>← Previous</button>
+<span className="counter">Step {step+1} of {steps.length}</span>
+<button className="btn btn-sm btn-accent" style={{opacity:step===steps.length-1?.3:1}} disabled={step===steps.length-1} onClick={()=>setStep(Math.min(steps.length-1,step+1))}>Next →</button>
+</div>
+</div>
+</section>
+
+{/* INTERACTIVE CALCULATOR */}
+<section id="interactive" className="section">
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--gold)'}}>Try It Yourself</div>
+<h2 className="font-d section-title">Interactive Calculator</h2>
+<p className="section-desc">Enter your own data and compute the ANOVA table instantly.</p>
+</div>
+<div className="section-inner">
+<div className="card" style={{padding:'2rem'}}>
+{cGroups.map((g,i)=><div key={i} className="input-row">
+<input className="input" value={g.name} onChange={e=>{const u=[...cGroups];u[i]={...u[i],name:e.target.value};setCGroups(u)}} placeholder="Group name"/>
+<input className="input font-m" value={g.data} onChange={e=>{const u=[...cGroups];u[i]={...u[i],data:e.target.value};setCGroups(u)}} placeholder="Comma-separated values"/>
+{cGroups.length>2&&<button className="remove-btn" onClick={()=>setCGroups(cGroups.filter((_,j)=>j!==i))}>✕</button>}
+</div>)}
+<div style={{display:'flex',flexWrap:'wrap',gap:'.75rem',marginTop:'.5rem'}}>
+<button className="btn btn-sm btn-gold-outline" onClick={()=>setCGroups([...cGroups,{name:`Group ${cGroups.length+1}`,data:''}])}>+ Add Group</button>
+<button className="btn btn-sm btn-accent" onClick={runCalc}>Compute ANOVA</button>
+</div>
+{cResult&&!cResult.error&&<div className="anim-fiu" style={{opacity:0,marginTop:'2rem'}}>
+<div className="overflow-x"><table className="anova-tbl"><thead><tr><th>Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p-value</th></tr></thead><tbody>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Between</td><td className="font-m">{cResult.SSB.toFixed(4)}</td><td className="font-m">{cResult.dfB}</td><td className="font-m">{cResult.MSB.toFixed(4)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{cResult.F.toFixed(4)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{fmtP(cResult.p)}</td></tr>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Within</td><td className="font-m">{cResult.SSW.toFixed(4)}</td><td className="font-m">{cResult.dfW}</td><td className="font-m">{cResult.MSW.toFixed(4)}</td><td></td><td></td></tr>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Total</td><td className="font-m">{cResult.SST.toFixed(4)}</td><td className="font-m">{cResult.dfB+cResult.dfW}</td><td></td><td></td><td></td></tr>
+</tbody></table></div>
+<div className={`decision ${cResult.p>=.05?'pass':''}`} style={{marginTop:'1rem'}}>
+<h4 className="font-d">{cResult.p<.05?'✓ Reject H₀':'✗ Fail to Reject H₀'}</h4>
+<p>F({cResult.dfB}, {cResult.dfW}) = {cResult.F.toFixed(4)}, p = {fmtP(cResult.p)}, F<sub>critical</sub> ≈ {cResult.fc.toFixed(4)}<br/>{cResult.p<.05?'At least one group mean differs significantly.':'No significant difference between group means.'}</p>
+</div>
+<div className="means-grid">{cResult.groups.map((g,i)=><div key={i} className="mean-card"><div className="label">{g.name}</div><div className="val font-m">{cResult.gMeans[i].toFixed(2)}</div><div className="n">n = {g.data.length}</div></div>)}</div>
+</div>}
+{cResult?.error&&<div style={{marginTop:'1rem',padding:'1rem',background:'rgba(196,85,58,.1)',color:'var(--accent)',borderRadius:'.5rem',fontSize:'.85rem'}}>{cResult.error}</div>}
+</div>
+</div>
+</section>
+
+{/* EXERCISES */}
+<section id="exercises" className="section dark-sec" style={{padding:'5rem 0'}}>
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--gold)'}}>Practice</div>
+<h2 className="font-d section-title">Exercises for <span style={{color:'var(--accent)'}}>You</span></h2>
+<p className="section-desc">Solve manually or use the code sandbox. Each includes R and Python code.</p>
+</div>
+<div className="section-inner">
+<div className="ex-tabs">{exercises.map((ex,i)=><button key={i} onClick={()=>setActEx(i)} className={`ex-tab ${actEx===i?'act':''}`}>Exercise {ex.id}</button>)}</div>
+{exercises.filter((_,i)=>i===actEx).map(ex=>{const sol=doAnova(ex.groups.map(g=>g.data));return(
+<div key={ex.id} className="ex-card">
+<h3 className="font-d">{ex.title}</h3>
+<p className="scenario">{ex.scenario}</p>
+<div className="overflow-x" style={{marginBottom:'1rem'}}><table className="anova-tbl"><thead><tr>{ex.groups.map((g,i)=><th key={i} style={{fontSize:'.75rem'}}>{g.name}</th>)}</tr></thead><tbody>
+{Array.from({length:Math.max(...ex.groups.map(g=>g.data.length))}).map((_,r)=><tr key={r}>{ex.groups.map((g,i)=><td key={i} className="font-m" style={{fontSize:'.8rem'}}>{g.data[r]!==undefined?g.data[r]:''}</td>)}</tr>)}
+</tbody></table></div>
+<div className="hint-box font-m">💡 {ex.hint}</div>
+<div className="ex-btns">
+<button className="ex-btn primary" onClick={()=>setShowSol({...showSol,[ex.id]:!showSol[ex.id]})}>{showSol[ex.id]?'Hide Solution':'Show Solution'}</button>
+<button className="ex-btn" onClick={()=>{setSbCode(ex.py);setSbLang('python');scrollTo('sandbox')}}>Open in Python →</button>
+<button className="ex-btn" onClick={()=>{setSbCode(ex.r);setSbLang('r');scrollTo('sandbox')}}>Open in R →</button>
+</div>
+{showSol[ex.id]&&<div className="anim-fiu" style={{opacity:0,marginTop:'1.5rem'}}>
+<div className="overflow-x"><table className="anova-tbl"><thead><tr><th>Source</th><th>SS</th><th>df</th><th>MS</th><th>F</th><th>p-value</th></tr></thead><tbody>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Between</td><td className="font-m">{sol.SSB.toFixed(2)}</td><td className="font-m">{sol.dfB}</td><td className="font-m">{sol.MSB.toFixed(2)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{sol.F.toFixed(4)}</td><td className="font-m" style={{color:'var(--accent)',fontWeight:700}}>{fmtP(sol.p)}</td></tr>
+<tr><td style={{fontWeight:600,textAlign:'left'}}>Within</td><td className="font-m">{sol.SSW.toFixed(2)}</td><td className="font-m">{sol.dfW}</td><td className="font-m">{sol.MSW.toFixed(2)}</td><td></td><td></td></tr>
+</tbody></table></div>
+<div className={`decision ${sol.p>=.05?'pass':''}`} style={{marginTop:'.75rem'}}><strong>{sol.p<.05?'✓ Reject H₀':'✗ Fail to Reject H₀'}</strong><span style={{fontSize:'.85rem',color:'rgba(245,240,232,.6)',marginLeft:'.5rem'}}>(F = {sol.F.toFixed(4)}, p = {fmtP(sol.p)})</span></div>
+</div>}
+</div>
+)})}
+</div>
+</section>
+
+{/* SANDBOX */}
+<section id="sandbox" className="section">
+<div className="section-inner" style={{textAlign:'center',marginBottom:'3rem'}}>
+<div className="section-label" style={{color:'var(--sage)'}}>Code Lab</div>
+<h2 className="font-d section-title">Sandbox</h2>
+<p className="section-desc">Write and run ANOVA computations. Edit code and click Run. The sandbox parses your data arrays and computes ANOVA.</p>
+</div>
+<div className="section-inner">
+<div className="sandbox">
+<div className="sb-toolbar">
+<div className="tabs"><button className={`sb-tab ${sbLang==='python'?'act':''}`} onClick={()=>setSbLang('python')}>Python</button><button className={`sb-tab ${sbLang==='r'?'act':''}`} onClick={()=>setSbLang('r')}>R</button></div>
+<button className="run-btn" onClick={runSandbox} disabled={running}>{running?<><span className="spinner"/>Running...</>:<>▶ Run</>}</button>
+</div>
+<textarea className="code-area" value={sbCode} onChange={e=>setSbCode(e.target.value)} spellCheck={false}/>
+{sbOut&&<div><div className="output-header"><span className="output-dot"/>Output</div><div className="output-area">{sbOut}</div></div>}
+</div>
+<p style={{textAlign:'center',color:'var(--steel)',fontSize:'.75rem',marginTop:'1rem'}}>This sandbox simulates execution by parsing data arrays and computing ANOVA in JavaScript. For full R/Python execution, copy code to RStudio, Jupyter, or Google Colab.</p>
+</div>
+</section>
+
+{/* FOOTER */}
+<footer className="footer">
+<div className="font-d brand">ANOVA<span>Lab</span></div>
+<p>An interactive simulation for MBA students. Built for the classroom.</p>
+<p className="sub">Center for Distance and Online Education (CDOE), ICFAI Foundation for Higher Education, Hyderabad</p>
+</footer>
+</div>
+);}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
